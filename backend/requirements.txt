@@ -1,0 +1,13 @@
+# Yilan GIS backend dependencies
+# Install with: python -m pip install -r requirements.txt
+Flask==3.0.0
+Flask-CORS==4.0.0
+numpy==1.24.0
+# 1.3.11 provides a Windows/Python 3.11 wheel and avoids local GDAL compilation.
+rasterio==1.3.11
+shapely==2.0.0
+scipy==1.11.0
+scikit-image==0.21.0
+matplotlib==3.7.0
+opencv-python==4.8.0.76
+requests==2.31.0

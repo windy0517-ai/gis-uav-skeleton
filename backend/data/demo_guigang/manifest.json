@@ -1,0 +1,14 @@
+{
+  "scene_id": "demo_guigang",
+  "name": "广西郁江洪涝应急演示场景",
+  "region": "guigang",
+  "crs": "EPSG:4326",
+  "default_provider": "mock",
+  "layers": {
+    "flood_extent": "services/mock_data.py:FLOOD_GEOJSON",
+    "inspection_route": "services/mock_data.py:ROUTE_GEOJSON",
+    "detected_objects": "services/mock_data.py:OBJECTS_GEOJSON",
+    "affected_stats": "services/mock_data.py:OVERLAY_STATS"
+  },
+  "notes": "真实SAR、DEM和无人机影像准备完成后，替换layers中的资源，不改变工作流接口。"
+}

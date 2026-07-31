@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.log
+backend/data/sar/*
+backend/data/dem/*
+backend/data/uav_images/*
+backend/data/models/*
+!backend/data/sar/.gitkeep
+!backend/data/dem/.gitkeep
+!backend/data/uav_images/.gitkeep
+!backend/data/models/.gitkeep
