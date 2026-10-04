@@ -1,862 +1,1428 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>翼澜 — 无人机洪涝应急决策系统</title>
 
     <!-- CesiumJS CDN -->
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+    <link
+      href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css"
+      rel="stylesheet"
+    />
 
     <!-- Vue 3 + Element Plus CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/element-plus"></script>
-    <link href="https://unpkg.com/element-plus/dist/index.css" rel="stylesheet" />
-    <link href="https://unpkg.com/@element-plus/icons-vue/dist/index.css" rel="stylesheet" />
+    <link
+      href="https://unpkg.com/element-plus/dist/index.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://unpkg.com/@element-plus/icons-vue/dist/index.css"
+      rel="stylesheet"
+    />
 
     <!-- axios -->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
     <style>
-        :root {
-            --bg: #07111f;
-            --line: rgba(143, 210, 232, 0.16);
-            --line-strong: rgba(100, 244, 255, 0.34);
-            --muted: #7894a3;
-            --cyan: #64f4ff;
-            --cyan-soft: rgba(100, 244, 255, 0.10);
-            --green: #55d69a;
-            --yellow: #ffd166;
-            --red: #ff727e;
-        }
+      :root {
+        --bg: #07111f;
+        --line: rgba(143, 210, 232, 0.16);
+        --line-strong: rgba(100, 244, 255, 0.34);
+        --muted: #7894a3;
+        --cyan: #64f4ff;
+        --cyan-soft: rgba(100, 244, 255, 0.1);
+        --green: #55d69a;
+        --yellow: #ffd166;
+        --red: #ff727e;
+      }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #app { width: 100%; height: 100%; overflow: hidden; font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body,
+      #app {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+      }
 
-        /* 暗色指挥中心主题 */
-        .command-center {
-            width: 100%; height: 100%;
-            background:
-                radial-gradient(circle at 53% 46%, rgba(22, 75, 104, 0.18), transparent 38%),
-                var(--bg);
-            display: flex;
-            position: relative;
-        }
+      /* 暗色指挥中心主题 */
+      .command-center {
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(
+            circle at 53% 46%,
+            rgba(22, 75, 104, 0.18),
+            transparent 38%
+          ),
+          var(--bg);
+        display: flex;
+        position: relative;
+      }
 
-        /* 左侧面板 */
-        .left-panel {
-            width: 314px;
-            min-width: 314px;
-            height: 100%;
-            background: linear-gradient(180deg, rgba(10, 25, 43, 0.98), rgba(6, 16, 29, 0.96));
-            border-right: 1px solid var(--line);
-            padding: 18px 16px 14px;
-            display: flex;
-            flex-direction: column;
-            z-index: 10;
-            overflow-y: auto;
-        }
-        .left-panel::-webkit-scrollbar { width: 4px; }
-        .left-panel::-webkit-scrollbar-thumb { background: rgba(100, 244, 255, 0.3); border-radius: 2px; }
+      /* 左侧面板 */
+      .left-panel {
+        width: 314px;
+        min-width: 314px;
+        height: 100%;
+        background: linear-gradient(
+          180deg,
+          rgba(10, 25, 43, 0.98),
+          rgba(6, 16, 29, 0.96)
+        );
+        border-right: 1px solid var(--line);
+        padding: 18px 16px 14px;
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        overflow-y: auto;
+      }
+      .left-panel::-webkit-scrollbar {
+        width: 4px;
+      }
+      .left-panel::-webkit-scrollbar-thumb {
+        background: rgba(100, 244, 255, 0.3);
+        border-radius: 2px;
+      }
 
-        .logo-area {
-            text-align: center;
-            padding: 5px 4px 18px;
-            border-bottom: 1px solid var(--line);
-            margin-bottom: 14px;
-            text-align: left;
-        }
-        .logo-kicker { color: var(--cyan); font-size: 10px; letter-spacing: 2.4px; margin-bottom: 7px; opacity: .78; }
-        .logo-title {
-            font-size: 26px; font-weight: 700; letter-spacing: 4px;
-            background: linear-gradient(90deg, #64F4FF, #4DC9F6);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .logo-sub {
-            color: var(--muted); font-size: 12px; margin-top: 7px; letter-spacing: .4px;
-        }
+      .logo-area {
+        text-align: center;
+        padding: 5px 4px 18px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 14px;
+        text-align: left;
+      }
+      .logo-kicker {
+        color: var(--cyan);
+        font-size: 10px;
+        letter-spacing: 2.4px;
+        margin-bottom: 7px;
+        opacity: 0.78;
+      }
+      .logo-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        background: linear-gradient(90deg, #64f4ff, #4dc9f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .logo-sub {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 7px;
+        letter-spacing: 0.4px;
+      }
 
-        .section-label {
-            color: #7695a4;
-            font-size: 12px;
-            letter-spacing: 1.5px;
-            margin: 17px 0 9px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .section-label::before { content: ''; width: 3px; height: 13px; border-radius: 2px; background: var(--cyan); box-shadow: 0 0 10px rgba(100,244,255,.55); }
+      .section-label {
+        color: #7695a4;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        margin: 17px 0 9px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-label::before {
+        content: "";
+        width: 3px;
+        height: 13px;
+        border-radius: 2px;
+        background: var(--cyan);
+        box-shadow: 0 0 10px rgba(100, 244, 255, 0.55);
+      }
 
-        .scenario-btn {
-            width: 100%; padding: 11px 12px; margin-bottom: 7px;
-            border: 1px solid var(--line);
-            border-radius: 7px;
-            background: rgba(255,255,255,0.025);
-            color: #b7cbd3;
-            cursor: pointer; text-align: left;
-            font-size: 13px; transition: all 0.2s; position: relative;
-        }
-        .scenario-btn:hover {
-            background: var(--cyan-soft);
-            border-color: var(--line-strong);
-            transform: translateX(2px);
-        }
-        .scenario-btn.active {
-            background: linear-gradient(90deg, rgba(100,244,255,.17), rgba(100,244,255,.04));
-            border-color: var(--cyan);
-            color: var(--cyan);
-            box-shadow: inset 3px 0 0 var(--cyan), 0 0 18px rgba(100,244,255,.06);
-        }
-        .scenario-btn .scenario-index { color: #5d7887; font-family: Consolas, monospace; font-size: 11px; margin-right: 8px; }
-        .scenario-btn.active .scenario-index { color: var(--cyan); }
-        .scenario-btn .badge {
-            float: right;
-            font-size: 11px;
-            padding: 2px 7px;
-            border-radius: 10px;
-            background: rgba(100, 244, 255, 0.09);
-            color: #83cbd5;
-        }
+      .scenario-btn {
+        width: 100%;
+        padding: 11px 12px;
+        margin-bottom: 7px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.025);
+        color: #b7cbd3;
+        cursor: pointer;
+        text-align: left;
+        font-size: 13px;
+        transition: all 0.2s;
+        position: relative;
+      }
+      .scenario-btn:hover {
+        background: var(--cyan-soft);
+        border-color: var(--line-strong);
+        transform: translateX(2px);
+      }
+      .scenario-btn.active {
+        background: linear-gradient(
+          90deg,
+          rgba(100, 244, 255, 0.17),
+          rgba(100, 244, 255, 0.04)
+        );
+        border-color: var(--cyan);
+        color: var(--cyan);
+        box-shadow:
+          inset 3px 0 0 var(--cyan),
+          0 0 18px rgba(100, 244, 255, 0.06);
+      }
+      .scenario-btn .scenario-index {
+        color: #5d7887;
+        font-family: Consolas, monospace;
+        font-size: 11px;
+        margin-right: 8px;
+      }
+      .scenario-btn.active .scenario-index {
+        color: var(--cyan);
+      }
+      .scenario-btn .badge {
+        float: right;
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 10px;
+        background: rgba(100, 244, 255, 0.09);
+        color: #83cbd5;
+      }
 
-        .log-area {
-            flex: 1;
-            background: rgba(3, 11, 20, 0.52);
-            border: 1px solid rgba(143,210,232,.08);
-            border-radius: 8px;
-            padding: 11px;
-            margin-top: 12px;
-            overflow-y: auto;
-            font-size: 12px;
-            font-family: 'Consolas', monospace;
-            min-height: 120px;
-        }
-        .log-area::-webkit-scrollbar { width: 3px; }
-        .log-area::-webkit-scrollbar-thumb { background: rgba(100, 244, 255, 0.3); border-radius: 2px; }
-        .log-entry { color: #839ca8; margin-bottom: 5px; line-height: 1.55; }
-        .log-entry .time { color: #527381; margin-right: 8px; }
-        .log-entry .step { color: var(--cyan); }
-        .log-entry .done { color: var(--green); }
-        .log-entry .error { color: var(--red); }
-        .panel-actions { margin-top: 8px; display: flex; gap: 8px; }
-        .minor-btn { flex: 1; padding: 7px 6px; border: 1px solid var(--line); border-radius: 5px; background: rgba(255,255,255,.025); color: #7695a4; cursor: pointer; font-size: 11px; transition: all .2s; }
-        .minor-btn:hover { color: var(--cyan); border-color: var(--line-strong); background: var(--cyan-soft); }
-        .agent-panel { padding: 11px; border: 1px solid rgba(100,244,255,.20); border-radius: 9px; background: linear-gradient(145deg, rgba(100,244,255,.09), rgba(255,255,255,.018)); }
-        .agent-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-        .agent-panel-title { color: #d9f5f7; font-size: 12px; letter-spacing: .5px; }
-        .agent-panel-mode { color: var(--cyan); font-size: 9px; letter-spacing: 1px; }
-        .agent-input { width: 100%; min-height: 62px; resize: vertical; padding: 9px; border: 1px solid rgba(143,210,232,.16); border-radius: 6px; background: rgba(3,11,20,.55); color: #d8edf0; outline: none; font: 12px/1.55 'Microsoft YaHei', sans-serif; }
-        .agent-input:focus { border-color: var(--line-strong); box-shadow: 0 0 0 2px rgba(100,244,255,.06); }
-        .agent-input::placeholder { color: #58727e; }
-        .agent-submit { width: 100%; margin-top: 7px; padding: 8px; border: 1px solid var(--line-strong); border-radius: 5px; background: rgba(100,244,255,.12); color: var(--cyan); cursor: pointer; font-size: 12px; transition: all .2s; }
-        .agent-submit:hover:not(:disabled) { background: rgba(100,244,255,.20); }
-        .agent-submit:disabled { opacity: .55; cursor: wait; }
-        .agent-plan { margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(143,210,232,.10); max-height: 142px; overflow-y: auto; }
-        .agent-plan-title { color: #7894a3; font-size: 10px; margin-bottom: 6px; letter-spacing: 1px; }
-        .agent-plan-step { display: flex; gap: 7px; align-items: flex-start; margin-bottom: 6px; color: #b6ccd2; font-size: 11px; line-height: 1.4; }
-        .agent-plan-index { flex: 0 0 17px; height: 17px; border-radius: 50%; background: rgba(100,244,255,.14); color: var(--cyan); text-align: center; line-height: 17px; font: 10px/17px Consolas, monospace; }
-        .agent-plan-reason { display: block; color: #68818d; font-size: 10px; margin-top: 2px; }
-        .agent-answer { margin-top: 9px; padding: 9px; border: 1px solid rgba(85,214,154,.20); border-radius: 7px; background: rgba(85,214,154,.06); }
-        .agent-answer-title { color: var(--green); font-size: 11px; margin-bottom: 4px; }
-        .agent-answer-text { color: #b8d3d0; font-size: 11px; line-height: 1.5; }
+      .log-area {
+        flex: 1;
+        background: rgba(3, 11, 20, 0.52);
+        border: 1px solid rgba(143, 210, 232, 0.08);
+        border-radius: 8px;
+        padding: 11px;
+        margin-top: 12px;
+        overflow-y: auto;
+        font-size: 12px;
+        font-family: "Consolas", monospace;
+        min-height: 120px;
+      }
+      .log-area::-webkit-scrollbar {
+        width: 3px;
+      }
+      .log-area::-webkit-scrollbar-thumb {
+        background: rgba(100, 244, 255, 0.3);
+        border-radius: 2px;
+      }
+      .log-entry {
+        color: #839ca8;
+        margin-bottom: 5px;
+        line-height: 1.55;
+      }
+      .log-entry .time {
+        color: #527381;
+        margin-right: 8px;
+      }
+      .log-entry .step {
+        color: var(--cyan);
+      }
+      .log-entry .done {
+        color: var(--green);
+      }
+      .log-entry .error {
+        color: var(--red);
+      }
+      .panel-actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+      }
+      .minor-btn {
+        flex: 1;
+        padding: 7px 6px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.025);
+        color: #7695a4;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s;
+      }
+      .minor-btn:hover {
+        color: var(--cyan);
+        border-color: var(--line-strong);
+        background: var(--cyan-soft);
+      }
+      .agent-panel {
+        padding: 11px;
+        border: 1px solid rgba(100, 244, 255, 0.2);
+        border-radius: 9px;
+        background: linear-gradient(
+          145deg,
+          rgba(100, 244, 255, 0.09),
+          rgba(255, 255, 255, 0.018)
+        );
+      }
+      .agent-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .agent-panel-title {
+        color: #d9f5f7;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      .agent-panel-mode {
+        color: var(--cyan);
+        font-size: 9px;
+        letter-spacing: 1px;
+      }
+      .agent-input {
+        width: 100%;
+        min-height: 62px;
+        resize: vertical;
+        padding: 9px;
+        border: 1px solid rgba(143, 210, 232, 0.16);
+        border-radius: 6px;
+        background: rgba(3, 11, 20, 0.55);
+        color: #d8edf0;
+        outline: none;
+        font:
+          12px/1.55 "Microsoft YaHei",
+          sans-serif;
+      }
+      .agent-input:focus {
+        border-color: var(--line-strong);
+        box-shadow: 0 0 0 2px rgba(100, 244, 255, 0.06);
+      }
+      .agent-input::placeholder {
+        color: #58727e;
+      }
+      .agent-submit {
+        width: 100%;
+        margin-top: 7px;
+        padding: 8px;
+        border: 1px solid var(--line-strong);
+        border-radius: 5px;
+        background: rgba(100, 244, 255, 0.12);
+        color: var(--cyan);
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+      .agent-submit:hover:not(:disabled) {
+        background: rgba(100, 244, 255, 0.2);
+      }
+      .agent-submit:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      .agent-plan {
+        margin-top: 9px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(143, 210, 232, 0.1);
+        max-height: 142px;
+        overflow-y: auto;
+      }
+      .agent-plan-title {
+        color: #7894a3;
+        font-size: 10px;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+      }
+      .agent-plan-step {
+        display: flex;
+        gap: 7px;
+        align-items: flex-start;
+        margin-bottom: 6px;
+        color: #b6ccd2;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .agent-plan-index {
+        flex: 0 0 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: rgba(100, 244, 255, 0.14);
+        color: var(--cyan);
+        text-align: center;
+        line-height: 17px;
+        font:
+          10px/17px Consolas,
+          monospace;
+      }
+      .agent-plan-reason {
+        display: block;
+        color: #68818d;
+        font-size: 10px;
+        margin-top: 2px;
+      }
+      .agent-answer {
+        margin-top: 9px;
+        padding: 9px;
+        border: 1px solid rgba(85, 214, 154, 0.2);
+        border-radius: 7px;
+        background: rgba(85, 214, 154, 0.06);
+      }
+      .agent-answer-title {
+        color: var(--green);
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+      .agent-answer-text {
+        color: #b8d3d0;
+        font-size: 11px;
+        line-height: 1.5;
+      }
 
-        /* 中间三维场景 */
-        .center-scene {
-            flex: 1;
-            height: 100%;
-            position: relative;
-        }
-        #cesiumContainer {
-            width: 100%; height: 100%;
-        }
+      /* 中间三维场景 */
+      .center-scene {
+        flex: 1;
+        height: 100%;
+        position: relative;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+      }
 
-        /* 右侧统计面板 */
+      /* 右侧统计面板 */
+      .right-panel {
+        width: 306px;
+        min-width: 306px;
+        height: 100%;
+        background: linear-gradient(
+          180deg,
+          rgba(10, 25, 43, 0.96),
+          rgba(6, 16, 29, 0.96)
+        );
+        border-left: 1px solid var(--line);
+        padding: 18px 16px 14px;
+        z-index: 10;
+        overflow-y: auto;
+      }
+      .right-panel::-webkit-scrollbar {
+        width: 4px;
+      }
+      .right-panel::-webkit-scrollbar-thumb {
+        background: rgba(100, 244, 255, 0.3);
+        border-radius: 2px;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 13px;
+      }
+      .panel-heading .section-label {
+        margin: 0;
+      }
+      .panel-state {
+        font-size: 10px;
+        color: var(--green);
+        letter-spacing: 0.5px;
+      }
+      .panel-state::before {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        margin-right: 5px;
+        box-shadow: 0 0 8px rgba(85, 214, 154, 0.7);
+      }
+      .stat-card {
+        background: linear-gradient(
+          145deg,
+          rgba(100, 244, 255, 0.075),
+          rgba(255, 255, 255, 0.018)
+        );
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 13px;
+        margin-bottom: 9px;
+        transition: all 0.3s;
+      }
+      .stat-card:hover {
+        border-color: var(--line-strong);
+        transform: translateY(-1px);
+      }
+      .stat-card .label {
+        color: #7894a3;
+        font-size: 11px;
+        letter-spacing: 0.3px;
+      }
+      .stat-card .value {
+        color: var(--cyan);
+        font-size: 26px;
+        font-weight: 700;
+        margin: 5px 0 3px;
+        letter-spacing: 0.3px;
+      }
+      .stat-card .unit {
+        font-size: 12px;
+        color: #7894a3;
+        font-weight: 400;
+      }
+      .stat-card .sub {
+        color: #68818d;
+        font-size: 11px;
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+      .metric-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+      }
+      .metric-grid .stat-card {
+        margin-bottom: 0;
+      }
+      .metric-grid .stat-card .value {
+        font-size: 21px;
+      }
+      .decision-card {
+        border-color: rgba(255, 114, 126, 0.35);
+        background: linear-gradient(
+          145deg,
+          rgba(255, 114, 126, 0.12),
+          rgba(255, 255, 255, 0.018)
+        );
+      }
+      .decision-card .value {
+        text-shadow: 0 0 18px rgba(255, 114, 126, 0.22);
+      }
+
+      /* 状态条 */
+      .status-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 32px;
+        background: rgba(5, 15, 27, 0.84);
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        z-index: 20;
+        color: #6e8995;
+        font-size: 12px;
+      }
+      .status-bar .dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      .status-bar .dot.green {
+        background: var(--green);
+        box-shadow: 0 0 8px rgba(85, 214, 154, 0.7);
+      }
+      .status-bar .dot.yellow {
+        background: var(--yellow);
+        box-shadow: 0 0 8px rgba(255, 209, 102, 0.6);
+      }
+      .status-bar .status-item {
+        margin-right: 24px;
+      }
+
+      /* 地图信息层：给三维场景增加明确的业务上下文 */
+      .map-head {
+        position: absolute;
+        top: 18px;
+        left: 20px;
+        z-index: 5;
+        pointer-events: none;
+      }
+      .map-kicker {
+        color: var(--cyan);
+        font-size: 10px;
+        letter-spacing: 2px;
+        margin-bottom: 5px;
+      }
+      .map-title {
+        color: #f0fbfc;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+      }
+      .map-meta {
+        color: rgba(231, 244, 247, 0.58);
+        font-size: 11px;
+        margin-top: 6px;
+      }
+      .map-toolbar {
+        position: absolute;
+        top: 18px;
+        right: 20px;
+        z-index: 5;
+        display: flex;
+        gap: 7px;
+      }
+      .map-chip {
+        padding: 6px 9px;
+        color: #b4d4da;
+        background: rgba(5, 17, 30, 0.72);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        font-size: 11px;
+        backdrop-filter: blur(8px);
+      }
+      .map-chip.active {
+        color: var(--cyan);
+        border-color: var(--line-strong);
+      }
+      .map-legend {
+        position: absolute;
+        left: 20px;
+        bottom: 47px;
+        z-index: 5;
+        padding: 9px 11px;
+        background: rgba(5, 17, 30, 0.72);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: #a7c1c8;
+        font-size: 11px;
+        backdrop-filter: blur(8px);
+      }
+      .legend-title {
+        color: #d6edf0;
+        margin-bottom: 7px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 12px;
+      }
+      .legend-mark {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+      .legend-mark.flood {
+        background: #2389ff;
+        box-shadow: 0 0 7px rgba(35, 137, 255, 0.8);
+      }
+      .legend-mark.route {
+        width: 15px;
+        height: 2px;
+        border-radius: 1px;
+        background: var(--yellow);
+        box-shadow: 0 0 7px rgba(255, 209, 102, 0.8);
+      }
+      .legend-mark.target {
+        background: var(--red);
+        box-shadow: 0 0 7px rgba(255, 114, 126, 0.8);
+      }
+
+      /* 响应式适配 */
+      @media (max-width: 1200px) {
         .right-panel {
-            width: 306px;
-            min-width: 306px;
-            height: 100%;
-            background: linear-gradient(180deg, rgba(10, 25, 43, .96), rgba(6, 16, 29, .96));
-            border-left: 1px solid var(--line);
-            padding: 18px 16px 14px;
-            z-index: 10;
-            overflow-y: auto;
+          width: 274px;
+          min-width: 274px;
         }
-        .right-panel::-webkit-scrollbar { width: 4px; }
-        .right-panel::-webkit-scrollbar-thumb { background: rgba(100, 244, 255, 0.3); border-radius: 2px; }
-
-        .panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
-        .panel-heading .section-label { margin: 0; }
-        .panel-state { font-size: 10px; color: var(--green); letter-spacing: .5px; }
-        .panel-state::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 5px; box-shadow: 0 0 8px rgba(85,214,154,.7); }
-        .stat-card {
-            background: linear-gradient(145deg, rgba(100,244,255,.075), rgba(255,255,255,.018));
-            border: 1px solid var(--line);
-            border-radius: 9px;
-            padding: 13px;
-            margin-bottom: 9px;
-            transition: all 0.3s;
+      }
+      @media (max-width: 900px) {
+        .left-panel {
+          width: 250px;
+          min-width: 250px;
         }
-        .stat-card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
-        .stat-card .label { color: #7894a3; font-size: 11px; letter-spacing: .3px; }
-        .stat-card .value {
-            color: var(--cyan); font-size: 26px; font-weight: 700; margin: 5px 0 3px; letter-spacing: .3px;
+        .right-panel {
+          display: none;
         }
-        .stat-card .unit { font-size: 12px; color: #7894a3; font-weight: 400; }
-        .stat-card .sub { color: #68818d; font-size: 11px; margin-top: 4px; line-height: 1.5; }
-        .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-        .metric-grid .stat-card { margin-bottom: 0; }
-        .metric-grid .stat-card .value { font-size: 21px; }
-        .decision-card { border-color: rgba(255, 114, 126, .35); background: linear-gradient(145deg, rgba(255,114,126,.12), rgba(255,255,255,.018)); }
-        .decision-card .value { text-shadow: 0 0 18px rgba(255,114,126,.22); }
-
-        /* 状态条 */
-        .status-bar {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            height: 32px;
-            background: rgba(5, 15, 27, 0.84);
-            border-top: 1px solid var(--line);
-            display: flex; align-items: center;
-            padding: 0 16px;
-            z-index: 20;
-            color: #6e8995;
-            font-size: 12px;
+        .map-toolbar {
+          right: 12px;
         }
-        .status-bar .dot {
-            display: inline-block;
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            margin-right: 6px;
+        .map-head,
+        .map-legend {
+          left: 12px;
         }
-        .status-bar .dot.green { background: var(--green); box-shadow: 0 0 8px rgba(85,214,154,.7); }
-        .status-bar .dot.yellow { background: var(--yellow); box-shadow: 0 0 8px rgba(255,209,102,.6); }
-        .status-bar .status-item { margin-right: 24px; }
-
-        /* 地图信息层：给三维场景增加明确的业务上下文 */
-        .map-head { position: absolute; top: 18px; left: 20px; z-index: 5; pointer-events: none; }
-        .map-kicker { color: var(--cyan); font-size: 10px; letter-spacing: 2px; margin-bottom: 5px; }
-        .map-title { color: #f0fbfc; font-size: 18px; font-weight: 600; letter-spacing: 1px; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
-        .map-meta { color: rgba(231,244,247,.58); font-size: 11px; margin-top: 6px; }
-        .map-toolbar { position: absolute; top: 18px; right: 20px; z-index: 5; display: flex; gap: 7px; }
-        .map-chip { padding: 6px 9px; color: #b4d4da; background: rgba(5,17,30,.72); border: 1px solid var(--line); border-radius: 5px; font-size: 11px; backdrop-filter: blur(8px); }
-        .map-chip.active { color: var(--cyan); border-color: var(--line-strong); }
-        .map-legend { position: absolute; left: 20px; bottom: 47px; z-index: 5; padding: 9px 11px; background: rgba(5,17,30,.72); border: 1px solid var(--line); border-radius: 6px; color: #a7c1c8; font-size: 11px; backdrop-filter: blur(8px); }
-        .legend-title { color: #d6edf0; margin-bottom: 7px; }
-        .legend-item { display: inline-flex; align-items: center; margin-right: 12px; }
-        .legend-mark { width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-        .legend-mark.flood { background: #2389ff; box-shadow: 0 0 7px rgba(35,137,255,.8); }
-        .legend-mark.route { width: 15px; height: 2px; border-radius: 1px; background: var(--yellow); box-shadow: 0 0 7px rgba(255,209,102,.8); }
-        .legend-mark.target { background: var(--red); box-shadow: 0 0 7px rgba(255,114,126,.8); }
-
-        /* 响应式适配 */
-        @media (max-width: 1200px) {
-            .right-panel { width: 274px; min-width: 274px; }
-        }
-        @media (max-width: 900px) {
-            .left-panel { width: 250px; min-width: 250px; }
-            .right-panel { display: none; }
-            .map-toolbar { right: 12px; }
-            .map-head, .map-legend { left: 12px; }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="app">
-        <div class="command-center">
-            <!-- ===== 左侧控制面板 ===== -->
-            <div class="left-panel">
-                <div class="logo-area">
-                    <div class="logo-kicker">UAV · GIS · EMERGENCY</div>
-                    <div class="logo-title">翼 澜</div>
-                    <div class="logo-sub">无人机洪涝应急决策系统</div>
-                </div>
+      <div class="command-center">
+        <!-- ===== 左侧控制面板 ===== -->
+        <div class="left-panel">
+          <div class="logo-area">
+            <div class="logo-kicker">UAV · GIS · EMERGENCY</div>
+            <div class="logo-title">翼 澜</div>
+            <div class="logo-sub">无人机洪涝应急决策系统</div>
+          </div>
 
-                <div class="agent-panel">
-                    <div class="agent-panel-head">
-                        <span class="agent-panel-title">智能任务</span>
-                        <span class="agent-panel-mode">HYBRID AGENT</span>
-                    </div>
-                    <textarea class="agent-input" v-model="agentMessage"
-                              placeholder="例如：分析贵港洪水，重点寻找受困人员并规划巡检路线"
-                              @keydown.ctrl.enter="executeAgentTask"></textarea>
-                    <button class="agent-submit" @click="executeAgentTask" :disabled="agentRunning">
-                        {{ agentRunning ? '正在规划与执行...' : '智能执行任务' }}
-                    </button>
-                    <div class="agent-plan" v-if="agentPlan.length">
-                        <div class="agent-plan-title">执行计划 · {{ agentPlan.length }} 步</div>
-                        <div class="agent-plan-step" v-for="(step, index) in agentPlan" :key="`${step.tool_id}-${index}`">
-                            <span class="agent-plan-index">{{ index + 1 }}</span>
-                            <span>{{ step.label }}<span class="agent-plan-reason">{{ step.reason }}</span></span>
-                        </div>
-                    </div>
-                    <div class="agent-answer" v-if="agentReply">
-                        <div class="agent-answer-title">智能结论</div>
-                        <div class="agent-answer-text">{{ agentReply.summary }}</div>
-                        <div class="agent-answer-text">{{ agentReply.recommended_action }}</div>
-                    </div>
-                </div>
-
-                <div class="section-label">任务场景</div>
-                <button v-for="sc in scenarios" :key="sc.id"
-                        class="scenario-btn"
-                        :class="{ active: activeScenario === sc.id }"
-                        @click="executeScenario(sc.id)">
-                    <span class="scenario-index">0{{ scenarios.indexOf(sc) + 1 }}</span>
-                    {{ sc.name }}
-                    <span class="badge">{{ sc.steps.length }}步</span>
-                </button>
-
-                <div class="section-label">执行日志</div>
-                <div class="log-area" ref="logArea">
-                    <div v-for="(log, i) in logs" :key="i" class="log-entry">
-                        <span class="time">{{ log.time }}</span>
-                        <span :class="log.type">{{ log.message }}</span>
-                    </div>
-                    <div v-if="logs.length === 0" style="color: rgba(255,255,255,0.2); text-align: center; padding-top: 20px;">
-                        选择一个场景开始执行...
-                    </div>
-                </div>
-
-                <div class="panel-actions">
-                    <button class="minor-btn" @click="clearLogs">
-                        清空日志
-                    </button>
-                    <button class="minor-btn" @click="checkBackend">
-                        检测后端
-                    </button>
-                </div>
+          <div class="agent-panel">
+            <div class="agent-panel-head">
+              <span class="agent-panel-title">智能任务</span>
+              <span class="agent-panel-mode">HYBRID AGENT</span>
             </div>
-
-            <!-- ===== 中间三维场景 ===== -->
-            <div class="center-scene">
-                <div id="cesiumContainer"></div>
-                <div class="map-head">
-                    <div class="map-kicker">SITUATION AWARENESS / 01</div>
-                    <div class="map-title">港北区 · 洪涝态势总览</div>
-                    <div class="map-meta">广西贵港 · 低空遥感任务区 · {{ provider === 'mock' ? '演示数据' : '实时数据' }}</div>
-                </div>
-                <div class="map-toolbar">
-                    <span class="map-chip active">实时态势</span>
-                    <span class="map-chip">三维视图</span>
-                    <span class="map-chip">图层 03</span>
-                </div>
-                <div class="map-legend">
-                    <div class="legend-title">图层说明</div>
-                    <span class="legend-item"><i class="legend-mark flood"></i>淹没范围</span>
-                    <span class="legend-item"><i class="legend-mark route"></i>巡检航线</span>
-                    <span class="legend-item"><i class="legend-mark target"></i>目标点</span>
-                </div>
-                <div class="status-bar">
-                    <span class="status-item">
-                        <span class="dot" :class="backendOnline ? 'green' : 'yellow'"></span>
-                        后端 {{ backendOnline ? '已连接' : '未连接' }}
-                    </span>
-                    <span class="status-item">Cesium v1.118</span>
-                    <span class="status-item" v-if="activeScenario">执行中: {{ activeScenario }}</span>
-                    <span class="status-item" v-if="agentRunning">执行中: 智能任务</span>
-                </div>
+            <textarea
+              class="agent-input"
+              v-model="agentMessage"
+              placeholder="例如：分析贵港洪水，重点寻找受困人员并规划巡检路线"
+              @keydown.ctrl.enter="executeAgentTask"
+            ></textarea>
+            <button
+              class="agent-submit"
+              @click="executeAgentTask"
+              :disabled="agentRunning"
+            >
+              {{ agentRunning ? '正在规划与执行...' : '智能执行任务' }}
+            </button>
+            <div class="agent-plan" v-if="agentPlan.length">
+              <div class="agent-plan-title">
+                执行计划 · {{ agentPlan.length }} 步
+              </div>
+              <div
+                class="agent-plan-step"
+                v-for="(step, index) in agentPlan"
+                :key="`${step.tool_id}-${index}`"
+              >
+                <span class="agent-plan-index">{{ index + 1 }}</span>
+                <span
+                  >{{ step.label }}<span class="agent-plan-reason"
+                    >{{ step.reason }}</span
+                  ></span
+                >
+              </div>
             </div>
-
-            <!-- ===== 右侧统计面板 ===== -->
-            <div class="right-panel">
-                <div class="panel-heading">
-                    <div class="section-label">灾情统计</div>
-                    <span class="panel-state">数据已同步</span>
-                </div>
-                <div class="stat-card">
-                    <div class="label">淹没面积</div>
-                    <div class="value">{{ stats.floodArea }} <span class="unit">km²</span></div>
-                    <div class="sub">置信度 {{ stats.confidence }}%</div>
-                </div>
-                <div class="stat-card decision-card">
-                    <div class="label">行动建议 · 风险研判</div>
-                    <div class="value" :style="{color: decision.level === 'high' ? '#ff6b6b' : '#ffd666', fontSize: '18px'}">
-                        {{ decision.levelText }}风险
-                    </div>
-                    <div class="sub">{{ decision.action }}</div>
-                    <div class="sub" v-if="decision.reasons">依据：{{ decision.reasons }}</div>
-                </div>
-                <div class="agent-answer" v-if="agentReply">
-                    <div class="agent-answer-title">Agent 任务结论</div>
-                    <div class="agent-answer-text">{{ agentReply.summary }}</div>
-                    <div class="agent-answer-text">建议：{{ agentReply.recommended_action }}</div>
-                </div>
-                <div class="section-label">关键指标</div>
-                <div class="metric-grid">
-                    <div class="stat-card">
-                        <div class="label">受影响建筑</div>
-                        <div class="value">{{ stats.buildings }} <span class="unit">栋</span></div>
-                        <div class="sub">淹没区 {{ stats.floodedBuildings }} 栋</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">受困人员</div>
-                        <div class="value" style="color: var(--red);">{{ stats.people }} <span class="unit">人</span></div>
-                        <div class="sub">待核查目标</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">航线长度</div>
-                        <div class="value">{{ stats.routeLength }} <span class="unit">km</span></div>
-                        <div class="sub">预计 {{ stats.routeTime }} 分钟</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">识别置信度</div>
-                        <div class="value">{{ stats.confidence }}<span class="unit">%</span></div>
-                        <div class="sub">水体提取结果</div>
-                    </div>
-                </div>
-                <div class="section-label">模块状态</div>
-                <div class="stat-card" style="border-color: rgba(100, 244, 255, 0.25);">
-                    <div class="label">服务健康度</div>
-                    <div style="margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.5);">
-                        <div v-for="m in moduleStatus" :key="m.name" style="margin-bottom: 4px;">
-                            <span :style="{ color: m.ready ? '#52c41a' : '#faad14' }">
-                                {{ m.ready ? '●' : '○' }}
-                            </span>
-                            {{ m.name }}: {{ m.ready ? '就绪' : m.status }}
-                        </div>
-                    </div>
-                </div>
+            <div class="agent-answer" v-if="agentReply">
+              <div class="agent-answer-title">智能结论</div>
+              <div class="agent-answer-text">{{ agentReply.summary }}</div>
+              <div class="agent-answer-text">
+                {{ agentReply.recommended_action }}
+              </div>
             </div>
+          </div>
+
+          <div class="section-label">任务场景</div>
+          <button
+            v-for="sc in scenarios"
+            :key="sc.id"
+            class="scenario-btn"
+            :class="{ active: activeScenario === sc.id }"
+            @click="executeScenario(sc.id)"
+          >
+            <span class="scenario-index">0{{ scenarios.indexOf(sc) + 1 }}</span>
+            {{ sc.name }}
+            <span class="badge">{{ sc.steps.length }}步</span>
+          </button>
+
+          <div class="section-label">执行日志</div>
+          <div class="log-area" ref="logArea">
+            <div v-for="(log, i) in logs" :key="i" class="log-entry">
+              <span class="time">{{ log.time }}</span>
+              <span :class="log.type">{{ log.message }}</span>
+            </div>
+            <div
+              v-if="logs.length === 0"
+              style="
+                color: rgba(255, 255, 255, 0.2);
+                text-align: center;
+                padding-top: 20px;
+              "
+            >
+              选择一个场景开始执行...
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <button class="minor-btn" @click="clearLogs">清空日志</button>
+            <button class="minor-btn" @click="checkBackend">检测后端</button>
+          </div>
         </div>
+
+        <!-- ===== 中间三维场景 ===== -->
+        <div class="center-scene">
+          <div id="cesiumContainer"></div>
+          <div class="map-head">
+            <div class="map-kicker">SITUATION AWARENESS / 01</div>
+            <div class="map-title">港北区 · 洪涝态势总览</div>
+            <div class="map-meta">
+              广西贵港 · 低空遥感任务区 · {{ provider === 'mock' ? '演示数据' :
+              '实时数据' }}
+            </div>
+          </div>
+          <div class="map-toolbar">
+            <span class="map-chip active">实时态势</span>
+            <span class="map-chip">三维视图</span>
+            <span class="map-chip">图层 03</span>
+          </div>
+          <div class="map-legend">
+            <div class="legend-title">图层说明</div>
+            <span class="legend-item"
+              ><i class="legend-mark flood"></i>淹没范围</span
+            >
+            <span class="legend-item"
+              ><i class="legend-mark route"></i>巡检航线</span
+            >
+            <span class="legend-item"
+              ><i class="legend-mark target"></i>目标点</span
+            >
+          </div>
+          <div class="status-bar">
+            <span class="status-item">
+              <span
+                class="dot"
+                :class="backendOnline ? 'green' : 'yellow'"
+              ></span>
+              后端 {{ backendOnline ? '已连接' : '未连接' }}
+            </span>
+            <span class="status-item">Cesium v1.118</span>
+            <span class="status-item" v-if="activeScenario"
+              >执行中: {{ activeScenario }}</span
+            >
+            <span class="status-item" v-if="agentRunning"
+              >执行中: 智能任务</span
+            >
+          </div>
+        </div>
+
+        <!-- ===== 右侧统计面板 ===== -->
+        <div class="right-panel">
+          <div class="panel-heading">
+            <div class="section-label">灾情统计</div>
+            <span class="panel-state">数据已同步</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">淹没面积</div>
+            <div class="value">
+              {{ stats.floodArea }} <span class="unit">km²</span>
+            </div>
+            <div class="sub">置信度 {{ stats.confidence }}%</div>
+          </div>
+          <div class="stat-card decision-card">
+            <div class="label">行动建议 · 风险研判</div>
+            <div
+              class="value"
+              :style="{color: decision.level === 'high' ? '#ff6b6b' : '#ffd666', fontSize: '18px'}"
+            >
+              {{ decision.levelText }}风险
+            </div>
+            <div class="sub">{{ decision.action }}</div>
+            <div class="sub" v-if="decision.reasons">
+              依据：{{ decision.reasons }}
+            </div>
+          </div>
+          <div class="agent-answer" v-if="agentReply">
+            <div class="agent-answer-title">Agent 任务结论</div>
+            <div class="agent-answer-text">{{ agentReply.summary }}</div>
+            <div class="agent-answer-text">
+              建议：{{ agentReply.recommended_action }}
+            </div>
+          </div>
+          <div class="section-label">关键指标</div>
+          <div class="metric-grid">
+            <div class="stat-card">
+              <div class="label">受影响建筑</div>
+              <div class="value">
+                {{ stats.buildings }} <span class="unit">栋</span>
+              </div>
+              <div class="sub">淹没区 {{ stats.floodedBuildings }} 栋</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">受困人员</div>
+              <div class="value" style="color: var(--red)">
+                {{ stats.people }} <span class="unit">人</span>
+              </div>
+              <div class="sub">待核查目标</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">航线长度</div>
+              <div class="value">
+                {{ stats.routeLength }} <span class="unit">km</span>
+              </div>
+              <div class="sub">预计 {{ stats.routeTime }} 分钟</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">识别置信度</div>
+              <div class="value">
+                {{ stats.confidence }}<span class="unit">%</span>
+              </div>
+              <div class="sub">水体提取结果</div>
+            </div>
+          </div>
+          <div class="section-label">模块状态</div>
+          <div
+            class="stat-card"
+            style="border-color: rgba(100, 244, 255, 0.25)"
+          >
+            <div class="label">服务健康度</div>
+            <div
+              style="
+                margin-top: 8px;
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.5);
+              "
+            >
+              <div
+                v-for="m in moduleStatus"
+                :key="m.name"
+                style="margin-bottom: 4px"
+              >
+                <span :style="{ color: m.ready ? '#52c41a' : '#faad14' }">
+                  {{ m.ready ? '●' : '○' }}
+                </span>
+                {{ m.name }}: {{ m.ready ? '就绪' : m.status }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
-    const { createApp, ref, reactive, onMounted, nextTick, computed } = Vue;
-    // When opened through Flask use relative URLs; when opened as a local file,
-    // keep the prototype usable by pointing to the local backend.
-    const API_BASE = window.API_BASE || (window.location.protocol === 'file:' ? 'http://localhost:5000' : '');
-    const PROVIDER = window.PROVIDER || new URLSearchParams(window.location.search).get('provider') || 'mock';
+      const { createApp, ref, reactive, onMounted, nextTick, computed } = Vue;
+      // When opened through Flask use relative URLs; when opened as a local file,
+      // keep the prototype usable by pointing to the local backend.
+      const API_BASE =
+        window.API_BASE ||
+        (window.location.protocol === "file:" ? "http://localhost:5000" : "");
+      const PROVIDER =
+        window.PROVIDER ||
+        new URLSearchParams(window.location.search).get("provider") ||
+        "mock";
 
-    const app = createApp({
+      const app = createApp({
         setup() {
-            // ========================
-            // 状态
-            // ========================
-            const backendOnline = ref(false);
-            const activeScenario = ref('');
-            const logs = ref([]);
-            const agentMessage = ref('');
-            const agentPlan = ref([]);
-            const agentRunning = ref(false);
-            const agentReply = ref(null);
+          // ========================
+          // 状态
+          // ========================
+          const backendOnline = ref(false);
+          const activeScenario = ref("");
+          const logs = ref([]);
+          const agentMessage = ref("");
+          const agentPlan = ref([]);
+          const agentRunning = ref(false);
+          const agentReply = ref(null);
 
-            const stats = reactive({
-                floodArea: 12.5,
-                confidence: 87,
-                buildings: 47,
-                floodedBuildings: 38,
-                people: 12,
-                routeLength: 15.2,
-                routeTime: 42
+          const stats = reactive({
+            floodArea: 12.5,
+            confidence: 87,
+            buildings: 47,
+            floodedBuildings: 38,
+            people: 12,
+            routeLength: 15.2,
+            routeTime: 42,
+          });
+
+          const decision = reactive({
+            level: "medium",
+            levelText: "中",
+            action: "等待任务分析",
+            reasons: "",
+          });
+
+          const moduleStatus = ref([
+            { name: "后端服务", ready: false, status: "等待连接" },
+            { name: "水体提取", ready: false, status: "mock" },
+            { name: "路径规划", ready: false, status: "mock" },
+            { name: "目标识别", ready: false, status: "mock" },
+            { name: "GIS叠置", ready: false, status: "未配置" },
+            { name: "MapGIS", ready: false, status: "未配置" },
+          ]);
+
+          const scenarios = [
+            {
+              id: "flood_recon",
+              name: "洪水侦察",
+              steps: [
+                "water_extract",
+                "path_plan",
+                "gis_overlay",
+                "risk_assess",
+                "stats",
+                "display",
+              ],
+            },
+            {
+              id: "damage_assess",
+              name: "灾情评估",
+              steps: ["water_extract", "gis_overlay", "risk_assess", "stats"],
+            },
+            {
+              id: "uav_inspect",
+              name: "无人机巡检",
+              steps: [
+                "path_plan",
+                "object_detect",
+                "gis_overlay",
+                "risk_assess",
+                "stats",
+                "display",
+              ],
+            },
+            {
+              id: "situation_deduce",
+              name: "态势推演",
+              steps: ["gis_simulate", "gis_overlay", "risk_assess", "stats"],
+            },
+            {
+              id: "decision_report",
+              name: "决策简报",
+              steps: ["stats", "risk_assess", "generate_report", "display"],
+            },
+          ];
+
+          const logArea = ref(null);
+
+          // ========================
+          // Cesium 三维场景（核心）
+          // ========================
+          let viewer = null;
+          let floodLayer = null;
+          let routeLayer = null;
+          let objectLayer = null;
+          const backendDataSources = [];
+
+          function initCesium() {
+            Cesium.Ion.defaultAccessToken =
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjE2bFE1YWtwcXdDM1pPWFUiLCJqdGkiOiJkZjNiMmM4YS05OWQ2LTQzZTMtYWY1ZC1jYjE2YTUyODliZTkiLCJpZCI6NTE0ODg1LCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3OTExMTM5NjF9.ICtFz8rs9NpeH37JxSY2wCFgF73Tcvn19jNlTN2HfKA";
+
+            viewer = new Cesium.Viewer("cesiumContainer", {
+              terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+              animation: false,
+              timeline: false,
+              baseLayerPicker: false,
+              fullscreenButton: false,
+              homeButton: false,
+              sceneModePicker: false,
+              navigationHelpButton: false,
+              infoBox: false,
+              selectionIndicator: false,
+              geocoder: false,
+              creditsDisplay: new Cesium.CreditDisplay(
+                document.createElement("div"),
+                " ",
+              ),
             });
 
-            const decision = reactive({
-                level: 'medium',
-                levelText: '中',
-                action: '等待任务分析',
-                reasons: ''
+            // 设置初始视角（广西郁江）
+            viewer.camera.setView({
+              destination: Cesium.Cartesian3.fromDegrees(109.7, 23.1, 25000),
+              orientation: {
+                heading: Cesium.Math.toRadians(-30),
+                pitch: Cesium.Math.toRadians(-25),
+                roll: 0,
+              },
             });
 
-            const moduleStatus = ref([
-                { name: '后端服务', ready: false, status: '等待连接' },
-                { name: '水体提取', ready: false, status: 'mock' },
-                { name: '路径规划', ready: false, status: 'mock' },
-                { name: '目标识别', ready: false, status: 'mock' },
-                { name: 'GIS叠置', ready: false, status: '未配置' },
-                { name: 'MapGIS', ready: false, status: '未配置' },
-            ]);
+            // 添加光照和阴影效果
+            viewer.scene.globe.enableLighting = true;
 
-            const scenarios = [
-                { id: 'flood_recon', name: '洪水侦察', steps: ['water_extract', 'path_plan', 'gis_overlay', 'risk_assess', 'stats', 'display'] },
-                { id: 'damage_assess', name: '灾情评估', steps: ['water_extract', 'gis_overlay', 'risk_assess', 'stats'] },
-                { id: 'uav_inspect', name: '无人机巡检', steps: ['path_plan', 'object_detect', 'gis_overlay', 'risk_assess', 'stats', 'display'] },
-                { id: 'situation_deduce', name: '态势推演', steps: ['gis_simulate', 'gis_overlay', 'risk_assess', 'stats'] },
-                { id: 'decision_report', name: '决策简报', steps: ['stats', 'risk_assess', 'generate_report', 'display'] },
+            // ===== 加载 Mock 数据：洪水面（蓝色半透明） =====
+            const floodPositions = [
+              109.55, 23.05, 120, 109.58, 23.08, 120, 109.62, 23.1, 120, 109.65,
+              23.08, 120, 109.63, 23.04, 120, 109.58, 23.02, 120,
+            ];
+            floodLayer = viewer.entities.add({
+              name: "洪水范围",
+              polygon: {
+                hierarchy: Cesium.Cartesian3.fromDegreesArray(floodPositions),
+                material: Cesium.Color.fromCssColorString(
+                  "rgba(0, 100, 255, 0.4)",
+                ),
+                outline: true,
+                outlineColor: Cesium.Color.fromCssColorString("#64F4FF"),
+                outlineWidth: 2,
+              },
+            });
+
+            // ===== 加载 Mock 数据：航线（发光折线） =====
+            const routePositions = [
+              [109.55, 23.05, 150],
+              [109.56, 23.06, 150],
+              [109.57, 23.07, 150],
+              [109.58, 23.08, 150],
+              [109.59, 23.09, 150],
+              [109.6, 23.1, 150],
+              [109.61, 23.09, 150],
+              [109.62, 23.08, 150],
+              [109.63, 23.07, 150],
+              [109.64, 23.06, 150],
+              [109.63, 23.05, 150],
+              [109.62, 23.04, 150],
+              [109.61, 23.03, 150],
+              [109.6, 23.02, 150],
+              [109.59, 23.03, 150],
+              [109.58, 23.04, 150],
+              [109.57, 23.05, 150],
+              [109.56, 23.05, 150],
+              [109.55, 23.05, 150],
+            ];
+            const cartographicRoute = routePositions.map((p) =>
+              Cesium.Cartesian3.fromDegrees(p[0], p[1], p[2]),
+            );
+
+            routeLayer = viewer.entities.add({
+              name: "无人机航线",
+              polyline: {
+                positions: cartographicRoute,
+                width: 3,
+                material: new Cesium.PolylineGlowMaterialProperty({
+                  glowPower: 0.3,
+                  color: Cesium.Color.fromCssColorString("#64F4FF"),
+                }),
+              },
+            });
+
+            // 添加航点标记
+            routePositions.forEach((p, i) => {
+              if (i % 3 === 0) {
+                // 隔几个点显示一个标记，避免太密
+                viewer.entities.add({
+                  position: Cesium.Cartesian3.fromDegrees(
+                    p[0],
+                    p[1],
+                    p[2] + 30,
+                  ),
+                  billboard: {
+                    image:
+                      "data:image/svg+xml," +
+                      encodeURIComponent(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#64F4FF" opacity="0.8"/></svg>',
+                      ),
+                    scale: 0.8,
+                  },
+                });
+              }
+            });
+
+            // ===== 加载 Mock 数据：目标点 =====
+            const targets = [
+              { lon: 109.59, lat: 23.06, label: "受困人员", color: "#ff6b6b" },
+              { lon: 109.61, lat: 23.08, label: "受困人员", color: "#ff6b6b" },
+              { lon: 109.58, lat: 23.04, label: "车辆", color: "#FFA94D" },
+              { lon: 109.6, lat: 23.07, label: "建筑", color: "#FFD43B" },
+              { lon: 109.62, lat: 23.09, label: "受困人员", color: "#ff6b6b" },
             ];
 
-            const logArea = ref(null);
-
-            // ========================
-            // Cesium 三维场景（核心）
-            // ========================
-            let viewer = null;
-            let floodLayer = null;
-            let routeLayer = null;
-            let objectLayer = null;
-            const backendDataSources = [];
-
-            function initCesium() {
-                Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhNTc2YjI1Yi1lNmE4LTQ3YzMtYTkzYy0zN2M4N2JkYjNmNjciLCJpZCI6MjU5LCJpYXQiOjE3MjI2MDQ5NTh9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkNlc2l1bSBUZXN0IiwiaWF0IjoxNTE2MjM5MDIyfQ';
-
-                viewer = new Cesium.Viewer('cesiumContainer', {
-                    terrainProvider: Cesium.createWorldTerrain(),
-                    animation: false,
-                    timeline: false,
-                    baseLayerPicker: false,
-                    fullscreenButton: false,
-                    homeButton: false,
-                    sceneModePicker: false,
-                    navigationHelpButton: false,
-                    infoBox: false,
-                    selectionIndicator: false,
-                    geocoder: false,
-                    creditsDisplay: new Cesium.CreditDisplay(
-                        document.createElement('div'),
-                        ' '
-                    ),
-                });
-
-                // 设置初始视角（广西郁江）
-                viewer.camera.setView({
-                    destination: Cesium.Cartesian3.fromDegrees(109.70, 23.10, 25000),
-                    orientation: {
-                        heading: Cesium.Math.toRadians(-30),
-                        pitch: Cesium.Math.toRadians(-25),
-                        roll: 0,
-                    },
-                });
-
-                // 添加光照和阴影效果
-                viewer.scene.globe.enableLighting = true;
-
-                // ===== 加载 Mock 数据：洪水面（蓝色半透明） =====
-                const floodPositions = [
-                    109.55, 23.05, 120,
-                    109.58, 23.08, 120,
-                    109.62, 23.10, 120,
-                    109.65, 23.08, 120,
-                    109.63, 23.04, 120,
-                    109.58, 23.02, 120,
-                ];
-                floodLayer = viewer.entities.add({
-                    name: '洪水范围',
-                    polygon: {
-                        hierarchy: Cesium.Cartesian3.fromDegreesArray(floodPositions),
-                        material: Cesium.Color.fromCssColorString('rgba(0, 100, 255, 0.4)'),
-                        outline: true,
-                        outlineColor: Cesium.Color.fromCssColorString('#64F4FF'),
-                        outlineWidth: 2,
-                    },
-                });
-
-                // ===== 加载 Mock 数据：航线（发光折线） =====
-                const routePositions = [
-                    [109.55, 23.05, 150], [109.56, 23.06, 150], [109.57, 23.07, 150],
-                    [109.58, 23.08, 150], [109.59, 23.09, 150], [109.60, 23.10, 150],
-                    [109.61, 23.09, 150], [109.62, 23.08, 150], [109.63, 23.07, 150],
-                    [109.64, 23.06, 150], [109.63, 23.05, 150], [109.62, 23.04, 150],
-                    [109.61, 23.03, 150], [109.60, 23.02, 150], [109.59, 23.03, 150],
-                    [109.58, 23.04, 150], [109.57, 23.05, 150], [109.56, 23.05, 150],
-                    [109.55, 23.05, 150],
-                ];
-                const cartographicRoute = routePositions.map(p =>
-                    Cesium.Cartesian3.fromDegrees(p[0], p[1], p[2])
-                );
-
-                routeLayer = viewer.entities.add({
-                    name: '无人机航线',
-                    polyline: {
-                        positions: cartographicRoute,
-                        width: 3,
-                        material: new Cesium.PolylineGlowMaterialProperty({
-                            glowPower: 0.3,
-                            color: Cesium.Color.fromCssColorString('#64F4FF'),
-                        }),
-                    },
-                });
-
-                // 添加航点标记
-                routePositions.forEach((p, i) => {
-                    if (i % 3 === 0) { // 隔几个点显示一个标记，避免太密
-                        viewer.entities.add({
-                            position: Cesium.Cartesian3.fromDegrees(p[0], p[1], p[2] + 30),
-                            billboard: {
-                                image: 'data:image/svg+xml,' + encodeURIComponent(
-                                    '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#64F4FF" opacity="0.8"/></svg>'
-                                ),
-                                scale: 0.8,
-                            },
-                        });
-                    }
-                });
-
-                // ===== 加载 Mock 数据：目标点 =====
-                const targets = [
-                    { lon: 109.59, lat: 23.06, label: '受困人员', color: '#ff6b6b' },
-                    { lon: 109.61, lat: 23.08, label: '受困人员', color: '#ff6b6b' },
-                    { lon: 109.58, lat: 23.04, label: '车辆', color: '#FFA94D' },
-                    { lon: 109.60, lat: 23.07, label: '建筑', color: '#FFD43B' },
-                    { lon: 109.62, lat: 23.09, label: '受困人员', color: '#ff6b6b' },
-                ];
-
-                targets.forEach(t => {
-                    viewer.entities.add({
-                        position: Cesium.Cartesian3.fromDegrees(t.lon, t.lat, 180),
-                        billboard: {
-                            image: 'data:image/svg+xml,' + encodeURIComponent(
-                                `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+            targets.forEach((t) => {
+              viewer.entities.add({
+                position: Cesium.Cartesian3.fromDegrees(t.lon, t.lat, 180),
+                billboard: {
+                  image:
+                    "data:image/svg+xml," +
+                    encodeURIComponent(
+                      `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
                                     <circle cx="12" cy="12" r="8" fill="${t.color}" opacity="0.9"/>
                                     <circle cx="12" cy="12" r="12" fill="${t.color}" opacity="0.2"/>
-                                </svg>`
-                            ),
-                            scale: 1.2,
-                        },
-                        label: {
-                            text: t.label,
-                            font: '14px Microsoft YaHei',
-                            fillColor: Cesium.Color.WHITE,
-                            outlineColor: Cesium.Color.BLACK,
-                            outlineWidth: 2,
-                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                            pixelOffset: new Cesium.Cartesian2(0, -30),
-                        },
-                    });
-                });
-
-                addLog('system', '三维场景初始化完成');
-                addLog('system', `加载: 洪水面 12.5km² / 航线 15.2km / 目标 5个`);
-            }
-
-            // ========================
-            // 后端结果渲染
-            // ========================
-            async function loadGeoJSONLayer(geojson, kind) {
-                if (!geojson || !viewer) return;
-
-                const dataSource = await Cesium.GeoJsonDataSource.load(geojson, {
-                    clampToGround: kind !== 'route'
-                });
-                viewer.dataSources.add(dataSource);
-                backendDataSources.push(dataSource);
-
-                dataSource.entities.values.forEach(entity => {
-                    if (kind === 'flood' && entity.polygon) {
-                        entity.polygon.material = Cesium.Color.fromCssColorString('rgba(0, 100, 255, 0.45)');
-                        entity.polygon.outline = true;
-                        entity.polygon.outlineColor = Cesium.Color.fromCssColorString('#64F4FF');
-                    }
-                    if (kind === 'route' && entity.polyline) {
-                        entity.polyline.width = 4;
-                        entity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-                            glowPower: 0.35,
-                            color: Cesium.Color.fromCssColorString('#FFEA61')
-                        });
-                    }
-                    if (kind === 'objects' && entity.point) {
-                        entity.point.pixelSize = 12;
-                        entity.point.color = Cesium.Color.fromCssColorString('#FF6B6B');
-                    }
-                });
-            }
-
-            function clearBackendDataSources() {
-                backendDataSources.forEach(dataSource => viewer.dataSources.remove(dataSource, true));
-                backendDataSources.length = 0;
-            }
-
-            async function renderWorkflowResults(results) {
-                if (!results) return;
-
-                // Hide the initial visual mock when real/mock API results arrive.
-                if (floodLayer) floodLayer.show = false;
-                if (routeLayer) routeLayer.show = false;
-                clearBackendDataSources();
-
-                try {
-                    if (results.water_extract && results.water_extract.geojson) {
-                        await loadGeoJSONLayer(results.water_extract.geojson, 'flood');
-                    }
-                    if (results.path_plan && results.path_plan.route) {
-                        await loadGeoJSONLayer(results.path_plan.route, 'route');
-                    }
-                    if (results.object_detect && results.object_detect.geojson) {
-                        await loadGeoJSONLayer(results.object_detect.geojson, 'objects');
-                    }
-                } catch (e) {
-                    addLog('error', `结果图层加载失败: ${e.message}`);
-                }
-
-                const summary = results.stats || {};
-                if (summary.flood_area_km2 !== undefined) stats.floodArea = summary.flood_area_km2;
-                if (summary.route_length_km !== undefined) stats.routeLength = summary.route_length_km;
-                if (summary.route_duration_min !== undefined) stats.routeTime = summary.route_duration_min;
-                if (summary.detected_counts) {
-                    stats.people = summary.detected_counts.person || 0;
-                }
-                if (results.water_extract && results.water_extract.confidence !== undefined) {
-                    stats.confidence = Math.round(results.water_extract.confidence * 100);
-                }
-
-                const risk = results.risk_assess || {};
-                if (risk.risk_level) {
-                    decision.level = risk.risk_level;
-                    decision.levelText = { high: '高', medium: '中', low: '低' }[risk.risk_level] || risk.risk_level;
-                    decision.action = risk.recommended_action || '继续开展重点区域巡检';
-                    decision.reasons = (risk.reasons || []).join('；');
-                }
-            }
-
-            // ========================
-            // 日志系统
-            // ========================
-            function addLog(type, message) {
-                const now = new Date();
-                const time = now.toTimeString().slice(0, 8);
-                logs.value.push({
-                    time,
-                    type,
-                    message,
-                });
-                if (logs.value.length > 100) {
-                    logs.value.shift();
-                }
-                // 自动滚动到底部
-                nextTick(() => {
-                    if (logArea.value) {
-                        logArea.value.scrollTop = logArea.value.scrollHeight;
-                    }
-                });
-            }
-
-            // ========================
-            // 执行场景
-            // ========================
-            async function executeScenario(id) {
-                activeScenario.value = id;
-                const sc = scenarios.find(s => s.id === id);
-                addLog('step', `开始执行: ${sc.name}`);
-
-                try {
-                    const res = await axios.post(`${API_BASE}/api/orchestrator/execute`, {
-                        scenario: id,
-                        params: { region: 'guigang', provider: PROVIDER }
-                    });
-
-                    if (res.data.status === 'success') {
-                        const taskData = res.data.data;
-                        taskData.logs.forEach(l => {
-                            addLog(l.type === 'step_start' ? 'step' : 'done', l.message);
-                        });
-                        await renderWorkflowResults(taskData.results);
-                        addLog('done', `✅ ${sc.name} 完成!`);
-                        addLog('system', `汇总: ${stats.floodArea}km²淹没, ${stats.people}人受困, 航线${stats.routeLength}km`);
-                    }
-                } catch (e) {
-                    // 后端未启动 → 使用本地模拟
-                    addLog('step', `[本地演示模式] ${sc.name}（未加载后端结果）`);
-                    const steps = sc.steps;
-                    steps.forEach((s, i) => {
-                        setTimeout(() => {
-                            addLog('step', `正在执行: ${s}`);
-                            setTimeout(() => {
-                                addLog('done', `完成: ${s}`);
-                                if (i === steps.length - 1) {
-                                    addLog('done', `✅ ${sc.name} 完成!`);
-                                    addLog('system', `汇总: ${stats.floodArea}km²淹没, ${stats.people}人受困`);
-                                    activeScenario.value = '';
-                                }
-                            }, 600);
-                        }, i * 800);
-                    });
-                }
-            }
-
-            // ========================
-            // 自然语言 Agent
-            // ========================
-            async function executeAgentTask() {
-                const message = agentMessage.value.trim();
-                if (!message || agentRunning.value) return;
-
-                agentRunning.value = true;
-                activeScenario.value = '';
-                agentPlan.value = [];
-                agentReply.value = null;
-                addLog('step', 'Agent正在解析任务并生成执行计划...');
-
-                try {
-                    const res = await axios.post(`${API_BASE}/api/agent/execute`, {
-                        message,
-                        mode: 'hybrid',
-                        params: { region: 'guigang', provider: PROVIDER }
-                    });
-                    const body = res.data || {};
-                    if (body.status !== 'success') {
-                        throw new Error(body.error?.message || 'Agent任务执行失败');
-                    }
-
-                    const taskData = body.data || {};
-                    agentPlan.value = taskData.plan || [];
-                    agentReply.value = taskData.final_answer || null;
-                    (taskData.logs || []).forEach(log => {
-                        const type = log.type === 'step_error' ? 'error' :
-                            (log.type === 'step_done' ? 'done' : 'step');
-                        addLog(type, log.message);
-                    });
-
-                    if (taskData.state === 'needs_clarification') {
-                        addLog('error', taskData.final_answer?.recommended_action || '请补充任务描述');
-                        return;
-                    }
-
-                    await renderWorkflowResults(taskData.results);
-                    addLog('done', taskData.final_answer?.summary || '智能任务完成');
-                    addLog('system', taskData.final_answer?.recommended_action || '已生成分析结果');
-                } catch (e) {
-                    addLog('error', `智能任务失败: ${e.message}`);
-                } finally {
-                    agentRunning.value = false;
-                }
-            }
-
-            // ========================
-            // 工具函数
-            // ========================
-            function clearLogs() {
-                logs.value = [];
-                addLog('system', '日志已清空');
-            }
-
-            async function checkBackend() {
-                addLog('system', '正在检测后端连接...');
-                try {
-                    const res = await axios.get(`${API_BASE}/api/hello`);
-                    if (res.data.status === 'running') {
-                        backendOnline.value = true;
-                        moduleStatus.value[0].ready = true;
-                        moduleStatus.value[0].status = '已连接';
-                        addLog('done', `后端已连接: ${res.data.message}`);
-                    }
-                } catch (e) {
-                    backendOnline.value = false;
-                    moduleStatus.value[0].ready = false;
-                    moduleStatus.value[0].status = '未连接';
-                    addLog('error', '后端未连接，请启动后端: python app.py');
-                }
-            }
-
-            // ========================
-            // 生命周期
-            // ========================
-            onMounted(() => {
-                initCesium();
-                addLog('system', '翼澜系统前端已加载');
-                addLog('system', '选择一个场景开始执行');
-
-                // 自动检测后端
-                setTimeout(checkBackend, 1000);
+                                </svg>`,
+                    ),
+                  scale: 1.2,
+                },
+                label: {
+                  text: t.label,
+                  font: "14px Microsoft YaHei",
+                  fillColor: Cesium.Color.WHITE,
+                  outlineColor: Cesium.Color.BLACK,
+                  outlineWidth: 2,
+                  style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                  pixelOffset: new Cesium.Cartesian2(0, -30),
+                },
+              });
             });
 
-            return {
-                backendOnline, activeScenario, logs, stats, moduleStatus, provider: PROVIDER,
-                agentMessage, agentPlan, agentRunning, agentReply,
-                decision, scenarios, logArea,
-                executeScenario, executeAgentTask, clearLogs, checkBackend,
-            };
-        }
-    });
+            addLog("system", "三维场景初始化完成");
+            addLog("system", `加载: 洪水面 12.5km² / 航线 15.2km / 目标 5个`);
+          }
 
-    app.use(ElementPlus);
-    app.mount('#app');
+          // ========================
+          // 后端结果渲染
+          // ========================
+          async function loadGeoJSONLayer(geojson, kind) {
+            if (!geojson || !viewer) return;
+
+            const dataSource = await Cesium.GeoJsonDataSource.load(geojson, {
+              clampToGround: kind !== "route",
+            });
+            viewer.dataSources.add(dataSource);
+            backendDataSources.push(dataSource);
+
+            dataSource.entities.values.forEach((entity) => {
+              if (kind === "flood" && entity.polygon) {
+                entity.polygon.material = Cesium.Color.fromCssColorString(
+                  "rgba(0, 100, 255, 0.45)",
+                );
+                entity.polygon.outline = true;
+                entity.polygon.outlineColor =
+                  Cesium.Color.fromCssColorString("#64F4FF");
+              }
+              if (kind === "route" && entity.polyline) {
+                entity.polyline.width = 4;
+                entity.polyline.material =
+                  new Cesium.PolylineGlowMaterialProperty({
+                    glowPower: 0.35,
+                    color: Cesium.Color.fromCssColorString("#FFEA61"),
+                  });
+              }
+              if (kind === "objects" && entity.point) {
+                entity.point.pixelSize = 12;
+                entity.point.color = Cesium.Color.fromCssColorString("#FF6B6B");
+              }
+            });
+          }
+
+          function clearBackendDataSources() {
+            backendDataSources.forEach((dataSource) =>
+              viewer.dataSources.remove(dataSource, true),
+            );
+            backendDataSources.length = 0;
+          }
+
+          async function renderWorkflowResults(results) {
+            if (!results) return;
+
+            // Hide the initial visual mock when real/mock API results arrive.
+            if (floodLayer) floodLayer.show = false;
+            if (routeLayer) routeLayer.show = false;
+            clearBackendDataSources();
+
+            try {
+              if (results.water_extract && results.water_extract.geojson) {
+                await loadGeoJSONLayer(results.water_extract.geojson, "flood");
+              }
+              if (results.path_plan && results.path_plan.route) {
+                await loadGeoJSONLayer(results.path_plan.route, "route");
+              }
+              if (results.object_detect && results.object_detect.geojson) {
+                await loadGeoJSONLayer(
+                  results.object_detect.geojson,
+                  "objects",
+                );
+              }
+            } catch (e) {
+              addLog("error", `结果图层加载失败: ${e.message}`);
+            }
+
+            const summary = results.stats || {};
+            if (summary.flood_area_km2 !== undefined)
+              stats.floodArea = summary.flood_area_km2;
+            if (summary.route_length_km !== undefined)
+              stats.routeLength = summary.route_length_km;
+            if (summary.route_duration_min !== undefined)
+              stats.routeTime = summary.route_duration_min;
+            if (summary.detected_counts) {
+              stats.people = summary.detected_counts.person || 0;
+            }
+            if (
+              results.water_extract &&
+              results.water_extract.confidence !== undefined
+            ) {
+              stats.confidence = Math.round(
+                results.water_extract.confidence * 100,
+              );
+            }
+
+            const risk = results.risk_assess || {};
+            if (risk.risk_level) {
+              decision.level = risk.risk_level;
+              decision.levelText =
+                { high: "高", medium: "中", low: "低" }[risk.risk_level] ||
+                risk.risk_level;
+              decision.action =
+                risk.recommended_action || "继续开展重点区域巡检";
+              decision.reasons = (risk.reasons || []).join("；");
+            }
+          }
+
+          // ========================
+          // 日志系统
+          // ========================
+          function addLog(type, message) {
+            const now = new Date();
+            const time = now.toTimeString().slice(0, 8);
+            logs.value.push({
+              time,
+              type,
+              message,
+            });
+            if (logs.value.length > 100) {
+              logs.value.shift();
+            }
+            // 自动滚动到底部
+            nextTick(() => {
+              if (logArea.value) {
+                logArea.value.scrollTop = logArea.value.scrollHeight;
+              }
+            });
+          }
+
+          // ========================
+          // 执行场景
+          // ========================
+          async function executeScenario(id) {
+            activeScenario.value = id;
+            const sc = scenarios.find((s) => s.id === id);
+            addLog("step", `开始执行: ${sc.name}`);
+
+            try {
+              const res = await axios.post(
+                `${API_BASE}/api/orchestrator/execute`,
+                {
+                  scenario: id,
+                  params: { region: "guigang", provider: PROVIDER },
+                },
+              );
+
+              if (res.data.status === "success") {
+                const taskData = res.data.data;
+                taskData.logs.forEach((l) => {
+                  addLog(l.type === "step_start" ? "step" : "done", l.message);
+                });
+                await renderWorkflowResults(taskData.results);
+                addLog("done", `✅ ${sc.name} 完成!`);
+                addLog(
+                  "system",
+                  `汇总: ${stats.floodArea}km²淹没, ${stats.people}人受困, 航线${stats.routeLength}km`,
+                );
+              }
+            } catch (e) {
+              // 后端未启动 → 使用本地模拟
+              addLog("step", `[本地演示模式] ${sc.name}（未加载后端结果）`);
+              const steps = sc.steps;
+              steps.forEach((s, i) => {
+                setTimeout(() => {
+                  addLog("step", `正在执行: ${s}`);
+                  setTimeout(() => {
+                    addLog("done", `完成: ${s}`);
+                    if (i === steps.length - 1) {
+                      addLog("done", `✅ ${sc.name} 完成!`);
+                      addLog(
+                        "system",
+                        `汇总: ${stats.floodArea}km²淹没, ${stats.people}人受困`,
+                      );
+                      activeScenario.value = "";
+                    }
+                  }, 600);
+                }, i * 800);
+              });
+            }
+          }
+
+          // ========================
+          // 自然语言 Agent
+          // ========================
+          async function executeAgentTask() {
+            const message = agentMessage.value.trim();
+            if (!message || agentRunning.value) return;
+
+            agentRunning.value = true;
+            activeScenario.value = "";
+            agentPlan.value = [];
+            agentReply.value = null;
+            addLog("step", "Agent正在解析任务并生成执行计划...");
+
+            try {
+              const res = await axios.post(`${API_BASE}/api/agent/execute`, {
+                message,
+                mode: "hybrid",
+                params: { region: "guigang", provider: PROVIDER },
+              });
+              const body = res.data || {};
+              if (body.status !== "success") {
+                throw new Error(body.error?.message || "Agent任务执行失败");
+              }
+
+              const taskData = body.data || {};
+              agentPlan.value = taskData.plan || [];
+              agentReply.value = taskData.final_answer || null;
+              (taskData.logs || []).forEach((log) => {
+                const type =
+                  log.type === "step_error"
+                    ? "error"
+                    : log.type === "step_done"
+                      ? "done"
+                      : "step";
+                addLog(type, log.message);
+              });
+
+              if (taskData.state === "needs_clarification") {
+                addLog(
+                  "error",
+                  taskData.final_answer?.recommended_action || "请补充任务描述",
+                );
+                return;
+              }
+
+              await renderWorkflowResults(taskData.results);
+              addLog("done", taskData.final_answer?.summary || "智能任务完成");
+              addLog(
+                "system",
+                taskData.final_answer?.recommended_action || "已生成分析结果",
+              );
+            } catch (e) {
+              addLog("error", `智能任务失败: ${e.message}`);
+            } finally {
+              agentRunning.value = false;
+            }
+          }
+
+          // ========================
+          // 工具函数
+          // ========================
+          function clearLogs() {
+            logs.value = [];
+            addLog("system", "日志已清空");
+          }
+
+          async function checkBackend() {
+            addLog("system", "正在检测后端连接...");
+            try {
+              const res = await axios.get(`${API_BASE}/api/hello`);
+              if (res.data.status === "running") {
+                backendOnline.value = true;
+                moduleStatus.value[0].ready = true;
+                moduleStatus.value[0].status = "已连接";
+                addLog("done", `后端已连接: ${res.data.message}`);
+              }
+            } catch (e) {
+              backendOnline.value = false;
+              moduleStatus.value[0].ready = false;
+              moduleStatus.value[0].status = "未连接";
+              addLog("error", "后端未连接，请启动后端: python app.py");
+            }
+          }
+
+          // ========================
+          // 生命周期
+          // ========================
+          onMounted(() => {
+            initCesium();
+            addLog("system", "翼澜系统前端已加载");
+            addLog("system", "选择一个场景开始执行");
+
+            // 自动检测后端
+            setTimeout(checkBackend, 1000);
+          });
+
+          return {
+            backendOnline,
+            activeScenario,
+            logs,
+            stats,
+            moduleStatus,
+            provider: PROVIDER,
+            agentMessage,
+            agentPlan,
+            agentRunning,
+            agentReply,
+            decision,
+            scenarios,
+            logArea,
+            executeScenario,
+            executeAgentTask,
+            clearLogs,
+            checkBackend,
+          };
+        },
+      });
+
+      app.use(ElementPlus);
+      app.mount("#app");
     </script>
-</body>
+  </body>
 </html>
